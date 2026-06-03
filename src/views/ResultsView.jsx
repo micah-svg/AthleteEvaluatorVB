@@ -17,7 +17,6 @@ export default function ResultsView({ roster, week, evals, subs }) {
   const submittedCount = new Set(subs.map((s) => s.uid)).size
   const final = submittedCount >= EVAL_TOTAL
 
-  // group by primary position
   const groups = {}
   roster.forEach((p) => {
     const g = POS_ORDER.includes(p.position) ? p.position : 'Other'
@@ -40,23 +39,23 @@ export default function ResultsView({ roster, week, evals, subs }) {
         const rows = groups[g]
           .map((p) => {
             const a = aggregate(p, evals, subs)
-            let prevOverall = null
+            let prevWeighted = null
             if (week > 1) {
               const pa = aggregate(p, prev.evals, prev.subs)
-              if (pa.coaches >= SHOW_THRESHOLD) prevOverall = pa.overall
+              if (pa.coaches >= SHOW_THRESHOLD) prevWeighted = pa.weighted
             }
-            return { p, a, prevOverall }
+            return { p, a, prevWeighted }
           })
           .sort((x, y) => {
             const gr = gradeRank(y.p.grade) - gradeRank(x.p.grade)
             if (gr) return gr
-            return (y.a.overall ?? -1) - (x.a.overall ?? -1)
+            return (y.a.weighted ?? -1) - (x.a.weighted ?? -1)
           })
         return (
           <div className="grp" key={g}>
             <h2>{posName(g)}</h2>
-            {rows.map(({ p, a, prevOverall }) => (
-              <ResultRow key={p.id} player={p} a={a} prevOverall={prevOverall} week={week} />
+            {rows.map(({ p, a, prevWeighted }) => (
+              <ResultRow key={p.id} player={p} a={a} prevWeighted={prevWeighted} week={week} />
             ))}
           </div>
         )
@@ -65,7 +64,7 @@ export default function ResultsView({ roster, week, evals, subs }) {
   )
 }
 
-function ResultRow({ player, a, prevOverall, week }) {
+function ResultRow({ player, a, prevWeighted, week }) {
   const ready = a.coaches >= SHOW_THRESHOLD
   return (
     <div className="rcard">
@@ -81,10 +80,9 @@ function ResultRow({ player, a, prevOverall, week }) {
           <span className="pending">Pending · {a.coaches}/{SHOW_THRESHOLD} coaches</span>
         ) : (
           <>
-            <Score label="Overall" value={Math.round(a.overall)} />
-            <Score label="Intang" gold value={a.intangible != null ? a.intangible.toFixed(2) : '–'} />
-            <Score label="Skills" value={a.skills != null ? Math.round(a.skills) : '–'} />
-            {week > 1 && <Trend overall={a.overall} prev={prevOverall} />}
+            <Score label="Score" value={a.weighted != null ? a.weighted.toFixed(1) : '–'} />
+            <Score label="Intang" gold value={a.intangible != null ? `${a.intangible.toFixed(1)}/5` : '–'} />
+            {week > 1 && <Trend weighted={a.weighted} prev={prevWeighted} />}
           </>
         )}
       </div>
@@ -101,10 +99,10 @@ function Score({ label, value, gold }) {
   )
 }
 
-function Trend({ overall, prev }) {
+function Trend({ weighted, prev }) {
   if (prev == null) return <div className="trend flat">— new</div>
-  const d = overall - prev
+  const d = weighted - prev
   const cls = d > 2 ? 'up' : d < -2 ? 'down' : 'flat'
   const arrow = d > 2 ? '▲' : d < -2 ? '▼' : '▬'
-  return <div className={`trend ${cls}`}>{arrow} {d > 0 ? '+' : ''}{Math.round(d)}</div>
+  return <div className={`trend ${cls}`}>{arrow} {d > 0 ? '+' : ''}{d.toFixed(1)}</div>
 }

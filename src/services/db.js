@@ -70,6 +70,13 @@ export async function saveBank({ player, week, user, coachKey, bank, key, value 
   await setDoc(doc(db, 'evaluations', id), patch, { merge: true })
 }
 
+// Save multiple keys in one bank in a single write (used for tally groups).
+export async function saveBankMulti({ player, week, user, coachKey, bank, kvs }) {
+  const id = `${player.id}__w${week}__${user.uid}`
+  const patch = { ...identity(player, week, user, coachKey), [bank]: kvs, ts: serverTimestamp() }
+  await setDoc(doc(db, 'evaluations', id), patch, { merge: true })
+}
+
 // Save general notes for one athlete (By Athlete). Not a scored metric.
 export async function saveNotes({ player, week, user, coachKey, notes }) {
   const id = `${player.id}__w${week}__${user.uid}`

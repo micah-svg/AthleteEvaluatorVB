@@ -84,7 +84,9 @@ table.intab td.nameC .pn{font-weight:700;font-size:.92rem;} table.intab td.nameC
 .cell{width:42px;height:42px;border-radius:9px;border:1.5px solid var(--line);background:#fff;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.05rem;cursor:pointer;}
 .cell.v1{background:var(--red-soft);border-color:var(--red);color:var(--red);}
 .cell.v2{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-deep);}
-.cell.v3{background:var(--royal);border-color:var(--royal);color:#fff;}
+.cell.v3{background:var(--gold);border-color:var(--gold-deep);color:var(--royal-deep);}
+.cell.v4{background:var(--royal-soft);border-color:var(--royal);color:var(--royal);}
+.cell.v5{background:var(--royal);border-color:var(--royal);color:#fff;}
 
 .grp{margin-top:18px;}
 .grp h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;text-transform:uppercase;font-size:1.2rem;color:var(--royal-deep);border-bottom:2px solid var(--line);padding-bottom:5px;margin-bottom:8px;}
@@ -126,8 +128,19 @@ table.intab td.nameC .pn{font-weight:700;font-size:.92rem;} table.intab td.nameC
 .athlete-control{flex:2;display:flex;align-items:center;}
 .score-indicator{margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--royal);font-size:.85rem;}
 
-.rating-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.rating-buttons{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
 .rating-btn{padding:8px 6px;border:1.5px solid var(--line);border-radius:8px;background:#f5f5f5;color:var(--ink);font-weight:700;font-size:.9rem;font-family:'Barlow Condensed',sans-serif;cursor:pointer;transition:all .15s;}
 .rating-btn.active{background:var(--royal);color:#fff;border-color:var(--royal);}
+
+.num-input-wrap{display:flex;align-items:center;gap:6px;flex:1;}
+.num-input-wrap .tnum{flex:1;}
+.unit{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.8rem;color:var(--muted);white-space:nowrap;}
+
+.tally-control{display:flex;flex-direction:column;gap:8px;flex:1;}
+.tally-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.tally-field{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.tally-lbl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.tally-field input{width:100%;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.1rem;border:1.5px solid var(--line);border-radius:9px;padding:8px;height:44px;background:#fff;}
+.tally-eff{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.82rem;color:var(--royal);text-align:center;padding:4px 10px;background:var(--royal-soft);border-radius:8px;align-self:flex-start;}
 
 @media (max-width:640px){.pickrow{grid-template-columns:1fr;}.pctl{flex-basis:100%;}.rscores{flex-basis:100%;justify-content:flex-start;}.perf-grid{grid-template-columns:1fr;}.filter-bar{flex-direction:column;align-items:flex-start;}.showing-count{margin-left:0;}.athlete-row{flex-direction:column;align-items:flex-start;}.athlete-control{flex-basis:100%;width:100%;}.rating-buttons{width:100%;}.sort-btn{order:3;width:100%;}}

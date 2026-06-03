@@ -1,18 +1,20 @@
-import { INTANGIBLES, byKey } from '../config/metrics'
+import { INTANGIBLES } from '../config/metrics'
 import { saveBank } from '../services/db'
 
 export default function IntangiblesView({ roster, myEvals, week, user, coachKey, locked }) {
   function cycle(player, m, current) {
     if (locked) return
-    const next = current >= 3 ? null : (current || 0) + 1
+    const next = current >= 5 ? null : (current || 0) + 1
     saveBank({ player, week, user, coachKey, bank: 'intangible', key: m.key, value: next })
   }
 
   return (
     <div>
       <div className="legend">
-        <b>1</b> Problematic &nbsp; <b>2</b> Developing &nbsp; <b>3</b> Established &nbsp;·&nbsp;
-        tap a cell to cycle. Week {week}. {locked ? 'Locked.' : 'Saves on each tap.'}
+        <b>1</b> Poor/Passive &nbsp;
+        <b>3</b> Average Varsity &nbsp;
+        <b>5</b> Elite/All-State &nbsp;·&nbsp;
+        tap a cell to cycle (1→5). Week {week}. {locked ? 'Locked.' : 'Saves on each tap.'}
       </div>
       <div className="tablewrap">
         <table className="intab">
