@@ -14,20 +14,23 @@ function poolWeighted(list) {
 }
 
 // Aggregate one player's scores across all coaches who submitted this week.
-// evals: array of evaluation docs (any players). subs: array of submission docs.
+// A coach only counts toward `coaches` if they entered at least one real score
+// (notes-only docs do not count).
 export function aggregate(player, evals, subs) {
   const submitted = new Set(subs.map((s) => s.uid))
   const docs = evals.filter((e) => e.playerId === player.id && submitted.has(e.uid))
-  const coaches = new Set(docs.map((e) => e.uid)).size
 
-  const intPts = [], allPts = [], skillPts = []
+  const intPts = [], skillPts = [], allPts = []
+  const contributors = new Set()
+
   for (const e of docs) {
     const coachKey = e.coachKey || (evaluatorFor(e.coachEmail) || {}).key
+    let counted = false
     for (const m of ALL) {
       const v = bankVal(e, m)
       if (v == null || v === '') continue
-      const cat = m.bank
-      const w = weightFor(coachKey, player, cat)
+      counted = true
+      const w = weightFor(coachKey, player, m.bank)
       if (m.bank === 'intangible') {
         intPts.push({ w, v })                 // raw 1-3
         allPts.push({ w, v: norm(m, v) })     // 0-100
@@ -36,10 +39,11 @@ export function aggregate(player, evals, subs) {
         allPts.push({ w, v: norm(m, v) })
       }
     }
+    if (counted) contributors.add(e.uid)
   }
 
   return {
-    coaches,
+    coaches: contributors.size,
     intangible: intPts.length ? poolWeighted(intPts) : null, // 1-3
     skills: skillPts.length ? poolWeighted(skillPts) : null,  // 0-100
     overall: allPts.length ? poolWeighted(allPts) : null,     // 0-100

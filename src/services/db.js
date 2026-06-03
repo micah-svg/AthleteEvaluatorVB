@@ -1,6 +1,6 @@
 import {
-  collection, doc, setDoc, addDoc, deleteDoc, onSnapshot,
-  query, where, getDocs, serverTimestamp,
+  collection, doc, setDoc, onSnapshot,
+  query, where, getDocs, deleteDoc, serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 
@@ -63,22 +63,18 @@ function identity(player, week, user, coachKey) {
   }
 }
 
-// Save a single metric (used by Trait + Intangibles auto-save).
+// Save one metric value (By Skill + Intangibles auto-save).
 export async function saveBank({ player, week, user, coachKey, bank, key, value }) {
   const id = `${player.id}__w${week}__${user.uid}`
   const patch = { ...identity(player, week, user, coachKey), [bank]: { [key]: value }, ts: serverTimestamp() }
   await setDoc(doc(db, 'evaluations', id), patch, { merge: true })
 }
 
-// Save the full skill map for one athlete (By Athlete view).
-export async function saveSkills({ player, week, user, coachKey, skill }) {
+// Save general notes for one athlete (By Athlete). Not a scored metric.
+export async function saveNotes({ player, week, user, coachKey, notes }) {
   const id = `${player.id}__w${week}__${user.uid}`
-  const patch = { ...identity(player, week, user, coachKey), skill, ts: serverTimestamp() }
+  const patch = { ...identity(player, week, user, coachKey), notes, ts: serverTimestamp() }
   await setDoc(doc(db, 'evaluations', id), patch, { merge: true })
-}
-
-export async function addPlayer(p, byEmail) {
-  await addDoc(collection(db, 'roster'), { ...p, addedBy: byEmail || '', ts: serverTimestamp() })
 }
 
 export async function setSubmission({ week, user, coachKey }) {

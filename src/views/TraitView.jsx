@@ -1,14 +1,19 @@
-import { byKey, SKILL_CATS, SKILLS } from '../config/metrics'
+import { byKey, SKILL_CATS } from '../config/metrics'
 import { bankVal } from '../lib/aggregate'
 import { saveBank } from '../services/db'
 
-export default function TraitView({ roster, myEvals, week, user, coachKey, traitKey, setTraitKey, locked }) {
+// By Skill = pick a skill, rate the whole roster on one page, then submit the week.
+export default function TraitView({
+  roster, myEvals, week, user, coachKey, traitKey, setTraitKey, locked, submitInfo,
+}) {
   const m = byKey[traitKey]
 
   function save(player, value) {
     if (locked) return
     saveBank({ player, week, user, coachKey, bank: m.bank, key: m.key, value })
   }
+
+  const scored = roster.filter((p) => bankVal(myEvals[`${p.id}__w${week}`], m) != null).length
 
   return (
     <div>
@@ -22,9 +27,14 @@ export default function TraitView({ roster, myEvals, week, user, coachKey, trait
           ))}
         </select>
       </div>
+
       <div className={`sec ${m.group === 'scale' ? '' : 'gold'}`}>
-        <div className="bar"><h3>{m.label}</h3><p>{m.desc}. Week {week}. {locked ? 'Locked.' : 'Saves on each entry.'}</p></div>
+        <div className="bar">
+          <h3>{m.label}</h3>
+          <p>{m.desc}. Week {week}. {locked ? 'Locked.' : 'Rate every athlete, switch skills as needed, then submit.'}</p>
+        </div>
       </div>
+
       {roster.map((p) => {
         const v = bankVal(myEvals[`${p.id}__w${week}`], m)
         return (
@@ -40,6 +50,20 @@ export default function TraitView({ roster, myEvals, week, user, coachKey, trait
           </div>
         )
       })}
+
+      <div className="savebar">
+        <div className="savebar-inner">
+          <div className="target">
+            <div className="tname">{m.label}</div>
+            <div className="tstat">
+              Rated {scored}/{roster.length} · {submitInfo.count}/{submitInfo.total} coaches submitted Week {week}
+            </div>
+          </div>
+          <button className={`save-btn ${submitInfo.submitted ? 'saved' : ''}`} onClick={submitInfo.onToggle}>
+            {submitInfo.submitted ? (submitInfo.final ? 'Locked (final)' : 'Unsubmit') : 'Submit my Week'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

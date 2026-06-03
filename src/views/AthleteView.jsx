@@ -1,91 +1,59 @@
 import { useEffect, useState } from 'react'
-import { SKILLS, SKILL_CATS, byKey, numFmt } from '../config/metrics'
-import { bankVal } from '../lib/aggregate'
-import { saveSkills } from '../services/db'
+import { saveNotes } from '../services/db'
 
+// By Athlete = general notes only. No scoring happens here.
 export default function AthleteView({ roster, myEvals, week, user, coachKey, playerId, locked }) {
-  const [entry, setEntry] = useState({})
+  const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     const rec = myEvals[`${playerId}__w${week}`]
-    const e = {}
-    SKILLS.forEach((m) => { e[m.key] = bankVal(rec, m) })
-    setEntry(e)
+    setNotes(rec?.notes || '')
   }, [playerId, week, myEvals])
 
   const player = roster.find((p) => p.id === playerId)
-  const set = (k, v) => !locked && setEntry((s) => ({ ...s, [k]: v }))
 
   async function save() {
     if (!player || locked) return
-    await saveSkills({ player, week, user, coachKey, skill: entry })
+    await saveNotes({ player, week, user, coachKey, notes })
     setSaved(true); setTimeout(() => setSaved(false), 1400)
   }
 
-  if (!player) return <p className="pending">Pick an athlete above.</p>
+  if (!player) return <p className="pending">Pick an athlete above to add notes.</p>
 
   return (
     <div>
-      {SKILL_CATS.map((c) => (
-        <div key={c.title}>
-          <div className={`sec ${c.accent === 'gold' ? 'gold' : ''}`}>
-            <div className="bar"><h3>{c.title}</h3></div>
-          </div>
-          {c.keys.map((k) => (
-            <MetricCard key={k} m={byKey[k]} value={entry[k]} onChange={(v) => set(k, v)} />
-          ))}
+      <div className="sec">
+        <div className="bar">
+          <h3>General Notes</h3>
+          <p>{player.name} · Week {week}. Observations only — scoring lives in By Skill and Intangibles.</p>
         </div>
-      ))}
+      </div>
+      <div className="metric">
+        <textarea
+          value={notes}
+          disabled={locked}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="What you saw this week: strengths, what to work on, anything for the staff…"
+          style={{
+            width: '100%', minHeight: 200, padding: 12, fontSize: '1rem',
+            fontFamily: 'inherit', color: 'var(--ink)', background: '#fff',
+            border: '1.5px solid var(--line)', borderRadius: 11, resize: 'vertical',
+          }}
+        />
+      </div>
+
       <div className="savebar">
         <div className="savebar-inner">
           <div className="target">
             <div className="tname">{player.name}</div>
-            <div className="tstat">{locked ? `Week ${week} submitted — locked` : `Week ${week} · skills`}</div>
+            <div className="tstat">{locked ? `Week ${week} submitted — locked` : `Week ${week} · notes`}</div>
           </div>
           <button className={`save-btn ${saved ? 'saved' : ''}`} disabled={locked} onClick={save}>
-            {saved ? 'Saved' : 'Save'}
+            {saved ? 'Saved' : 'Save notes'}
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function MetricCard({ m, value, onChange }) {
-  return (
-    <div className="metric">
-      <div className="mtop">
-        <div>
-          <div className="mname">{m.label}</div>
-          <div className="mdesc">{m.desc}</div>
-        </div>
-        <span className={`badge ${m.group === 'num' ? 'gold' : ''} ${value == null ? 'empty' : ''}`}>
-          {value == null ? '–' : m.group === 'pct' ? `${value}%` : m.group === 'num' ? numFmt(m, value) : value}
-        </span>
-      </div>
-      {m.group === 'scale' && (
-        <div className="scale">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} className={`scale-btn ${value === n ? 'sel' : ''}`} onClick={() => onChange(n)}>{n}</button>
-          ))}
-        </div>
-      )}
-      {m.group === 'num' && (
-        <div className="num-row">
-          <input type="number" inputMode="decimal" step={m.step} min={m.min} max={m.max}
-            placeholder={m.ph} value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} />
-          <div className="presets">
-            {m.presets.map((v) => (
-              <button key={v} className="preset" onClick={() => onChange(v)}>{numFmt(m, v)}</button>
-            ))}
-          </div>
-        </div>
-      )}
-      {m.group === 'pct' && (
-        <input type="range" min="0" max="100" step="5" value={value ?? 50}
-          onChange={(e) => onChange(Number(e.target.value))} />
-      )}
     </div>
   )
 }
