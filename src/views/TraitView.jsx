@@ -4,7 +4,7 @@ import { bankVal } from '../lib/aggregate'
 import { saveBank } from '../services/db'
 
 export default function TraitView({
-  roster, myEvals, week, user, coachKey, traitKey, setTraitKey, locked, submitInfo,
+  roster, myEvals, week, user, coachKey, traitKey, setTraitKey, locked,
 }) {
   const m = byKey[traitKey]
   const [posFilter, setPosFilter] = useState('All Positions')
@@ -104,20 +104,6 @@ export default function TraitView({
           </div>
         )
       })}
-
-      <div className="savebar">
-        <div className="savebar-inner">
-          <div className="target">
-            <div className="tname">{m.label}</div>
-            <div className="tstat">
-              Rated {scored}/{filtered.length} · {submitInfo.count}/{submitInfo.total} coaches submitted Week {week}
-            </div>
-          </div>
-          <button className={`save-btn ${submitInfo.submitted ? 'saved' : ''}`} onClick={submitInfo.onToggle}>
-            {submitInfo.submitted ? (submitInfo.final ? 'Locked (final)' : 'Unsubmit') : 'Submit my Week'}
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
