@@ -86,3 +86,12 @@ export async function setSubmission({ week, user, coachKey }) {
 export async function clearSubmission({ week, user }) {
   await deleteDoc(doc(db, 'submissions', `w${week}__${user.uid}`))
 }
+
+export async function addPlayer(playerData, email) {
+  const newDocRef = doc(collection(db, 'roster'))
+  await setDoc(newDocRef, {
+    ...playerData,
+    addedBy: email,
+    addedAt: serverTimestamp(),
+  })
+}
