@@ -1,52 +1,106 @@
+import { useState } from 'react'
 import { byKey, SKILL_CATS } from '../config/metrics'
 import { bankVal } from '../lib/aggregate'
 import { saveBank } from '../services/db'
 
-// By Skill = pick a skill, rate the whole roster on one page, then submit the week.
 export default function TraitView({
   roster, myEvals, week, user, coachKey, traitKey, setTraitKey, locked, submitInfo,
 }) {
   const m = byKey[traitKey]
+  const [posFilter, setPosFilter] = useState('All Positions')
+  const [gradeFilter, setGradeFilter] = useState('All Grades')
+  const [sortBy, setSortBy] = useState('name')
 
   function save(player, value) {
     if (locked) return
     saveBank({ player, week, user, coachKey, bank: m.bank, key: m.key, value })
   }
 
-  const scored = roster.filter((p) => bankVal(myEvals[`${p.id}__w${week}`], m) != null).length
+  const allSkills = SKILL_CATS.flatMap(c => c.keys.map(k => byKey[k]))
+
+  let filtered = roster
+  if (posFilter !== 'All Positions') filtered = filtered.filter(p => p.position === posFilter)
+  if (gradeFilter !== 'All Grades') filtered = filtered.filter(p => p.grade === gradeFilter)
+
+  if (sortBy === 'name') filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+
+  const scored = filtered.filter((p) => bankVal(myEvals[`${p.id}__w${week}`], m) != null).length
+  const positions = [...new Set(roster.map(p => p.position))].sort()
+  const grades = [...new Set(roster.map(p => p.grade))].sort()
 
   return (
     <div>
-      <div className="field" style={{ marginBottom: 12 }}>
-        <label>Skill to score</label>
-        <select value={traitKey} onChange={(e) => setTraitKey(e.target.value)}>
-          {SKILL_CATS.map((c) => (
-            <optgroup key={c.title} label={c.title}>
-              {c.keys.map((k) => <option key={k} value={k}>{byKey[k].label}</option>)}
-            </optgroup>
+      <div className="perf-area-card">
+        <div className="paca-label">
+          <span className="icon">📌</span> Select Performance Area
+        </div>
+        <div className="perf-grid">
+          {SKILL_CATS.map(cat => (
+            <div key={cat.title} className="perf-category">
+              <h4>{cat.title}</h4>
+              <div className="perf-items">
+                {cat.keys.map(key => {
+                  const skill = byKey[key]
+                  const isSelected = traitKey === key
+                  return (
+                    <button
+                      key={key}
+                      className={`perf-btn ${isSelected ? 'active' : ''}`}
+                      onClick={() => setTraitKey(key)}
+                    >
+                      <div className="pbtn-label">{skill.label}</div>
+                      {skill.presets && <div className="pbtn-desc">Presets: {skill.presets.join(', ')}</div>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           ))}
-        </select>
+        </div>
+      </div>
+
+      <div className="filter-bar">
+        <div className="filter-group">
+          <label>Position:</label>
+          <select value={posFilter} onChange={(e) => setPosFilter(e.target.value)}>
+            <option>All Positions</option>
+            {positions.map(pos => <option key={pos} value={pos}>{pos}</option>)}
+          </select>
+        </div>
+        <div className="filter-group">
+          <label>Grade:</label>
+          <select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}>
+            <option>All Grades</option>
+            {grades.map(grade => <option key={grade} value={grade}>{grade}</option>)}
+          </select>
+        </div>
+        <button className="sort-btn" onClick={() => setSortBy(sortBy === 'name' ? 'reverse' : 'name')}>
+          ↕️ Sort by Name
+        </button>
+        <div className="showing-count">
+          Showing {filtered.length} of {roster.length} athletes
+        </div>
       </div>
 
       <div className={`sec ${m.group === 'scale' ? '' : 'gold'}`}>
         <div className="bar">
-          <h3>{m.label}</h3>
-          <p>{m.desc}. Week {week}. {locked ? 'Locked.' : 'Rate every athlete, switch skills as needed, then submit.'}</p>
+          <h3>Rate Athletes: {m.label}</h3>
+          <p>{m.desc}</p>
         </div>
       </div>
 
-      {roster.map((p) => {
+      {filtered.map((p) => {
         const v = bankVal(myEvals[`${p.id}__w${week}`], m)
         return (
-          <div className="trow" key={p.id}>
-            <div className="pinfo">
-              <div className="pn">{p.name}</div>
-              <div className="pmeta">{p.grade} · {p.position}</div>
+          <div className="athlete-row" key={p.id}>
+            <div className="athlete-info">
+              <div className="athlete-name">{p.name}</div>
+              <div className="athlete-meta">{p.position} · {p.grade}</div>
             </div>
-            <div className="pctl">
+            <div className="athlete-control">
               <RowControl m={m} value={v} onChange={(val) => save(p, val)} />
-              <span className={`tick ${v != null && v !== '' ? 'on' : ''}`} />
             </div>
+            {v != null && v !== '' && <div className="score-indicator">Score: {v}</div>}
           </div>
         )
       })}
@@ -56,7 +110,7 @@ export default function TraitView({
           <div className="target">
             <div className="tname">{m.label}</div>
             <div className="tstat">
-              Rated {scored}/{roster.length} · {submitInfo.count}/{submitInfo.total} coaches submitted Week {week}
+              Rated {scored}/{filtered.length} · {submitInfo.count}/{submitInfo.total} coaches submitted Week {week}
             </div>
           </div>
           <button className={`save-btn ${submitInfo.submitted ? 'saved' : ''}`} onClick={submitInfo.onToggle}>
@@ -71,19 +125,26 @@ export default function TraitView({
 function RowControl({ m, value, onChange }) {
   if (m.group === 'scale') {
     return (
-      <div className="sc5">
+      <div className="rating-buttons">
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className={value === n ? 'sel' : ''} onClick={() => onChange(n)}>{n}</button>
+          <button key={n} className={`rating-btn ${value === n ? 'active' : ''}`} onClick={() => onChange(n)}>
+            {n}
+          </button>
         ))}
       </div>
     )
   }
   if (m.group === 'num' && m.buttons) {
     return (
-      <div className="srb">
+      <div className="rating-buttons">
         {m.buttons.map((n) => (
-          <button key={n} className={value === n ? 'sel' : ''} onClick={() => onChange(n)}>{n}</button>
+          <button key={n} className={`rating-btn ${value === n ? 'active' : ''}`} onClick={() => onChange(n)}>
+            {n}
+          </button>
         ))}
+        <button className={`rating-btn ${value === 'N/A' || value == null ? 'active' : ''}`} onClick={() => onChange(null)}>
+          N/A
+        </button>
       </div>
     )
   }
