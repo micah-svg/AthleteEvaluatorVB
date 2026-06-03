@@ -18,7 +18,7 @@ export default function App() {
   const [mode, setMode] = useState('athlete')
   const [week, setWeek] = useState(1)
   const [playerId, setPlayerId] = useState('')
-  const [traitKey, setTraitKey] = useState('serveReceive')
+  const [traitKey, setTraitKey] = useState('approachTouch')
 
   const roster = useRoster(isStaff)
   const myEvals = useMyEvals(user?.uid)
