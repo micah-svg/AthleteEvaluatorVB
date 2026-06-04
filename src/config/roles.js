@@ -13,15 +13,19 @@ export const STAFF = [
   'kelsey.merritt.ghs@gmail.com', // Kelsey Schreiber - Volunteer Varsity Assistant (view only)
   'josiejansen11@gmail.com',
   'quirke2@gresham.k12.or.us',
+  'micah@futureplaysports.info',  // dev / admin access
 ]
 
-// The five evaluators whose scores are weighted and counted toward 3-of-5 / freeze.
+// Evaluators mapped by email → evaluatorId key used in Firestore evaluations docs.
+// Kelsey is view-only (scores not counted in aggregation).
 export const EVALUATORS = {
-  'barlowbruins.volleyball@gmail.com': { key: 'lihau', name: 'Lihau Perreira' },
-  'micahmariewilson@gmail.com':        { key: 'micah', name: 'Micah Wilson' },
-  'mary.bredenkamp2015@gmail.com':     { key: 'mary',  name: 'Mary Bredenkamp' },
-  'quirke2@gresham.k12.or.us':         { key: 'tai',   name: 'Tai Quirke' },
-  'josiejansen11@gmail.com':           { key: 'josie', name: 'Josie Quirken' },
+  'barlowbruins.volleyball@gmail.com': { key: 'lihau',  name: 'Lihau Perreira',   viewOnly: false },
+  'micahmariewilson@gmail.com':        { key: 'micah',  name: 'Micah Wilson',      viewOnly: false },
+  'mary.bredenkamp2015@gmail.com':     { key: 'mary',   name: 'Mary Bredenkamp',   viewOnly: false },
+  'quirke2@gresham.k12.or.us':         { key: 'tai',    name: 'Tai Quirke',        viewOnly: false },
+  'josiejansen11@gmail.com':           { key: 'josie',  name: 'Josie Quirken',     viewOnly: false },
+  'kelsey.merritt.ghs@gmail.com':      { key: 'kelsey', name: 'Kelsey Schreiber',  viewOnly: true  },
+  'micah@futureplaysports.info':       { key: 'micah',  name: 'Micah Wilson',      viewOnly: false },
 }
 
 export const EVAL_TOTAL = Object.keys(EVALUATORS).length // 5
