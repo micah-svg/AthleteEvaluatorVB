@@ -1,40 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ChevronLeft, Search, Undo2, Check } from "lucide-react";
-
-/**
- * BRUINS VB — Mobile Evaluation Capture Screen (v2)
- *
- * Flow:  Session  ->  Athlete  ->  Metric  ->  Capture (tap reps)  ->  Save
- *
- * v2 changes (per Coach Lihau's questionnaire):
- *  - Sessions are the three scored TRYOUT days; camp is shown but not scorable.
- *  - Athletes are identified NAME-FIRST (they wear name tags). The tryout number
- *    is a small cross-reference printed on the tag, not the primary identifier.
- *  - Metrics carry an `axis` (physical / performance / culture). Culture is the
- *    intangibles override lens she weights heavily.
- *
- * Preview runs on MOCK data shaped exactly like Firestore. Search for
- * "FIREBASE INTEGRATION" to see where live reads and the evaluation write go.
- */
-
-/* ----------------------------------------------------------------------------
-   FIREBASE INTEGRATION
-
-   import { db } from "./firebase";
-   import { collection, getDocs, addDoc, query, where, serverTimestamp } from "firebase/firestore";
-
-   // reads on mount:
-   //   sessions: getDocs(query(collection(db,"sessions"), where("scoring","==",true)))
-   //   athletes: getDocs(collection(db,"athletes"))
-   //   metrics:  getDocs(collection(db,"metrics"))
-
-   async function saveEvaluation(record) {
-     await addDoc(collection(db, "evaluations"), {
-       ...record, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), deleted: false,
-     });
-   }
-   // evaluatorId comes from the signed-in coach (auth.currentUser -> evaluator doc)
----------------------------------------------------------------------------- */
+import { collection, getDocs, addDoc, query, where, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../hooks/useAuth";
 
 const C = {
   blue: "#1A3CA0",
@@ -53,43 +21,6 @@ const BODY = "'DM Sans', sans-serif";
 const AXIS = { physical: "#6B7A99", performance: "#1A3CA0", culture: "#E0A100" };
 const AXIS_LABEL = { physical: "Physical", performance: "Performance", culture: "Culture" };
 
-// ---- MOCK DATA (mirrors Firestore) -----------------------------------------
-
-const SESSIONS = [
-  { sessionId: "tryout-day-1", name: "Tryout Day 1 — Physical, Serving & Ball Control", type: "tryout", scoring: true, dayNumber: 1, focusMetrics: ["approachTouch", "blockTouch", "proAgility", "serveRating", "serveReceiveRating", "defenseDig"] },
-  { sessionId: "tryout-day-2", name: "Tryout Day 2 — Setting, Hitting & Blocking", type: "tryout", scoring: true, dayNumber: 2, focusMetrics: ["oosSet", "transitionHitting", "blocking"] },
-  { sessionId: "tryout-day-3", name: "Tryout Day 3 — Competitive Play & Intangibles", type: "tryout", scoring: true, dayNumber: 3, focusMetrics: ["compete", "volleyballIQ", "communication", "coachability", "serveRating", "serveReceiveRating", "defenseDig", "transitionHitting"] },
-  { sessionId: "camp", name: "Elite Camp", type: "camp", scoring: false, dayNumber: null, focusMetrics: [] },
-];
-
-const METRICS = [
-  { metricKey: "approachTouch", label: "Approach Touch", category: "Physical", axis: "physical", inputType: "inches", repBased: false, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"] },
-  { metricKey: "blockTouch", label: "Block Touch", category: "Physical", axis: "physical", inputType: "inches", repBased: false, appliesTo: ["OH", "OPP", "MB", "S"] },
-  { metricKey: "proAgility", label: "Pro Agility", category: "Physical", axis: "physical", inputType: "seconds", repBased: false, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"] },
-  { metricKey: "serveRating", label: "Serve Rating", category: "Serving", axis: "performance", inputType: "scale_0_3", repBased: true, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"], scaleLegend: { 0: "Error", 1: "Free Ball", 2: "OOS Out", 3: "Ace / Overpass" } },
-  { metricKey: "serveReceiveRating", label: "Serve Receive", category: "Passing", axis: "performance", inputType: "scale_0_3", repBased: true, appliesTo: ["OH", "L", "DS", "S"], scaleLegend: { 0: "Ace / Shank", 1: "1-Option", 2: "2-Option", 3: "Perfect" } },
-  { metricKey: "defenseDig", label: "Defense / Dig", category: "Defense", axis: "performance", inputType: "scale_0_2", repBased: true, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"], scaleLegend: { 0: "Not converted", 1: "Kept alive", 2: "To transition" } },
-  { metricKey: "transitionHitting", label: "Transition Hitting", category: "Hitting", axis: "performance", inputType: "tally_KEIP", repBased: true, appliesTo: ["OH", "OPP", "MB"] },
-  { metricKey: "oosSet", label: "Out-of-System Set", category: "Setting", axis: "performance", inputType: "scale_0_2", repBased: true, appliesTo: ["S"], scaleLegend: { 0: "Off target", 1: "Hittable", 2: "On target" } },
-  { metricKey: "blocking", label: "Blocking", category: "Blocking", axis: "performance", inputType: "scale_0_2", repBased: true, appliesTo: ["MB", "OPP", "OH", "S"], scaleLegend: { 0: "Missed / Error", 1: "Touch / Slowed", 2: "Stuff block" } },
-  { metricKey: "compete", label: "Compete Level", category: "Intangibles", axis: "culture", inputType: "scale_1_5", repBased: false, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"] },
-  { metricKey: "volleyballIQ", label: "Volleyball IQ", category: "Intangibles", axis: "culture", inputType: "scale_1_5", repBased: false, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"] },
-  { metricKey: "communication", label: "Communication", category: "Intangibles", axis: "culture", inputType: "scale_1_5", repBased: false, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"] },
-  { metricKey: "coachability", label: "Coachability", category: "Intangibles", axis: "culture", inputType: "scale_1_5", repBased: false, appliesTo: ["S", "OH", "OPP", "MB", "L", "DS"] },
-];
-
-const ATHLETES = [
-  { athleteId: "BVB-003", fullName: "Arianna Veras", tryoutNumber: 3, primaryPosition: "S", gradeLevel: "Fr" },
-  { athleteId: "BVB-007", fullName: "Delilah Voelker", tryoutNumber: 7, primaryPosition: "MB", gradeLevel: "Sr" },
-  { athleteId: "BVB-011", fullName: "Lily Bertalot", tryoutNumber: 11, primaryPosition: "DS", gradeLevel: "Fr" },
-  { athleteId: "BVB-014", fullName: "Maeve Cameron", tryoutNumber: 14, primaryPosition: "OH", gradeLevel: "Fr" },
-  { athleteId: "BVB-018", fullName: "Eloise Jensen", tryoutNumber: 18, primaryPosition: "L", gradeLevel: "Jr" },
-  { athleteId: "BVB-021", fullName: "Bella Sandy", tryoutNumber: 21, primaryPosition: "OPP", gradeLevel: "So" },
-  { athleteId: "BVB-024", fullName: "Ava Sewell", tryoutNumber: 24, primaryPosition: "OH", gradeLevel: "Jr" },
-  { athleteId: "BVB-029", fullName: "Zoey Schettini", tryoutNumber: 29, primaryPosition: "MB", gradeLevel: "So" },
-  { athleteId: "BVB-033", fullName: "Sabrina Chao", tryoutNumber: 33, primaryPosition: "S", gradeLevel: "Sr" },
-  { athleteId: "BVB-037", fullName: "Scarlett Schwab", tryoutNumber: 37, primaryPosition: "DS", gradeLevel: "Fr" },
-];
 
 const POS_FULL = { S: "Setter", OH: "Outside", OPP: "Opposite", MB: "Middle", L: "Libero", DS: "Def. Spec." };
 
@@ -101,6 +32,39 @@ function initialsOf(name) {
 // ----------------------------------------------------------------------------
 
 export default function EvaluationCapture() {
+  const { user, coachKey, coachName } = useAuth();
+
+  const [sessions, setSessions] = useState([]);
+  const [athletes, setAthletes] = useState([]);
+  const [metrics, setMetrics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [sessSnap, athSnap, metSnap] = await Promise.all([
+          getDocs(collection(db, "sessions")),
+          getDocs(collection(db, "athletes")),
+          getDocs(collection(db, "metrics")),
+        ]);
+        setSessions(sessSnap.docs.map((d) => ({ sessionId: d.id, ...d.data() })));
+        setAthletes(
+          athSnap.docs
+            .map((d) => ({ athleteId: d.id, ...d.data() }))
+            .filter((a) => a.status !== "withdrawn" && a.eligibilityStatus !== "ineligible_grades")
+            .sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""))
+        );
+        setMetrics(metSnap.docs.map((d) => ({ metricKey: d.id, ...d.data() })));
+      } catch (e) {
+        setLoadError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
   const [step, setStep] = useState("session");
   const [session, setSession] = useState(null);
   const [athlete, setAthlete] = useState(null);
@@ -110,47 +74,64 @@ export default function EvaluationCapture() {
   const [value, setValue] = useState("");
   const [note, setNote] = useState("");
 
-  const [query, setQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showAllMetrics, setShowAllMetrics] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  // FIREBASE INTEGRATION: replace with addDoc to "evaluations"
-  function saveEvaluation(record) {
-    setLastSaved(record);
-    setSavedCount((n) => n + 1);
+  async function saveEvaluation(record) {
+    setSaving(true);
+    try {
+      await addDoc(collection(db, "evaluations"), {
+        ...record,
+        uid: user.uid,
+        evaluatorId: coachKey,
+        evaluatorName: coachName,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        deleted: false,
+      });
+      setLastSaved(record);
+      setSavedCount((n) => n + 1);
+    } catch (e) {
+      alert("Save failed: " + e.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function resetCapture() { setReps([]); setValue(""); setNote(""); }
   function goTo(s) { setStep(s); }
 
   const filteredAthletes = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return ATHLETES;
-    return ATHLETES.filter((a) => a.fullName.toLowerCase().includes(q) || String(a.tryoutNumber).includes(q));
-  }, [query]);
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return athletes;
+    return athletes.filter((a) =>
+      (a.fullName || "").toLowerCase().includes(q) || String(a.tryoutNumber || "").includes(q)
+    );
+  }, [searchQuery, athletes]);
 
   const metricsForSession = useMemo(() => {
-    if (!session || session.focusMetrics.length === 0) return METRICS;
-    return METRICS.filter((m) => session.focusMetrics.includes(m.metricKey));
-  }, [session]);
+    if (!session || !session.focusMetrics || session.focusMetrics.length === 0) return metrics;
+    return metrics.filter((m) => session.focusMetrics.includes(m.metricKey));
+  }, [session, metrics]);
 
   const applicableMetrics = useMemo(() => {
-    const base = showAllMetrics ? METRICS : metricsForSession;
+    const base = showAllMetrics ? metrics : metricsForSession;
     if (!athlete) return base;
-    return base.filter((m) => m.appliesTo.includes(athlete.primaryPosition));
-  }, [metricsForSession, athlete, showAllMetrics]);
+    return base.filter((m) => (m.appliesTo || []).includes(athlete.primaryPosition));
+  }, [metricsForSession, metrics, athlete, showAllMetrics]);
 
-  function handleSave() {
+  async function handleSave() {
     const base = {
       athleteId: athlete.athleteId,
-      evaluatorId: "EVAL-01", // FIREBASE INTEGRATION: signed-in coach
       sessionId: session.sessionId,
       metricKey: metric.metricKey,
       note: note.trim(),
     };
     const record = metric.repBased ? { ...base, reps, repCount: reps.length } : { ...base, value: Number(value) };
-    saveEvaluation(record);
+    await saveEvaluation(record);
     resetCapture();
     setStep("saved");
   }
@@ -193,6 +174,24 @@ export default function EvaluationCapture() {
     </div>
   );
 
+  if (loading) return (
+    <div style={previewFrame}>
+      <div style={{ ...screen, alignItems: 'center', justifyContent: 'center' }}>
+        {fonts}
+        <p style={{ fontFamily: BODY, color: C.muted }}>Loading…</p>
+      </div>
+    </div>
+  );
+
+  if (loadError) return (
+    <div style={previewFrame}>
+      <div style={{ ...screen, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        {fonts}
+        <p style={{ fontFamily: BODY, color: C.bad, textAlign: 'center' }}>Failed to load data: {loadError}</p>
+      </div>
+    </div>
+  );
+
   return (
     <div style={previewFrame}>
       <div style={screen}>
@@ -203,7 +202,7 @@ export default function EvaluationCapture() {
         <div style={{ padding: 18, flex: 1, overflowY: "auto" }}>
           {step === "session" && (
             <Section title="Select Session" sub="Where are you scoring right now?">
-              {SESSIONS.map((s) =>
+              {sessions.map((s) =>
                 s.scoring ? (
                   <RowCard key={s.sessionId} onClick={() => { setSession(s); goTo("athlete"); }}
                     title={s.name} sub={`Day ${s.dayNumber} · ${s.focusMetrics.length} focus metrics`} />
@@ -224,7 +223,7 @@ export default function EvaluationCapture() {
             <Section title="Select Athlete">
               <div style={searchWrap}>
                 <Search size={18} color={C.muted} />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name" style={searchInput} />
+                <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by name" style={searchInput} />
               </div>
               {filteredAthletes.map((a) => (
                 <button key={a.athleteId} onClick={() => { setAthlete(a); setShowAllMetrics(false); goTo("metric"); }} style={athleteRow}>
@@ -258,13 +257,13 @@ export default function EvaluationCapture() {
 
           {step === "capture" && (
             <CapturePanel metric={metric} reps={reps} setReps={setReps} value={value} setValue={setValue}
-              note={note} setNote={setNote} canSave={canSave} onSave={handleSave} />
+              note={note} setNote={setNote} canSave={canSave} onSave={handleSave} saving={saving} />
           )}
 
           {step === "saved" && (
             <SavedPanel last={lastSaved} athlete={athlete}
               onAnotherMetric={() => goTo("metric")}
-              onNextAthlete={() => { setAthlete(null); setMetric(null); setQuery(""); goTo("athlete"); }} />
+              onNextAthlete={() => { setAthlete(null); setMetric(null); setSearchQuery(""); goTo("athlete"); }} />
           )}
         </div>
       </div>
@@ -274,7 +273,7 @@ export default function EvaluationCapture() {
 
 // ---- capture panel ---------------------------------------------------------
 
-function CapturePanel({ metric, reps, setReps, value, setValue, note, setNote, canSave, onSave }) {
+function CapturePanel({ metric, reps, setReps, value, setValue, note, setNote, canSave, onSave, saving }) {
   const isScale = metric.inputType.startsWith("scale_") && metric.repBased;
   const isTally = metric.inputType === "tally_KEIP";
   const isSingleNum = metric.inputType === "inches" || metric.inputType === "seconds";
@@ -379,8 +378,8 @@ function CapturePanel({ metric, reps, setReps, value, setValue, note, setNote, c
 
       <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Coach note (optional)" style={noteBox} />
 
-      <button onClick={onSave} disabled={!canSave} style={{ ...saveBtn, opacity: canSave ? 1 : 0.45 }}>
-        <Check size={20} /> Save Evaluation
+      <button onClick={onSave} disabled={!canSave || saving} style={{ ...saveBtn, opacity: canSave && !saving ? 1 : 0.45 }}>
+        <Check size={20} /> {saving ? "Saving…" : "Save Evaluation"}
       </button>
     </div>
   );
