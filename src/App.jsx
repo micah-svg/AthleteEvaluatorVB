@@ -1,22 +1,9 @@
 import { useAuth } from './hooks/useAuth'
-<<<<<<< HEAD
 import EvaluationCapture from './views/EvaluationCapture'
 
 const C = { blue: '#1A3CA0', gold: '#FCB712', navy: '#14213E', cream: '#FAF6EB' }
 const DISPLAY = "'Barlow Condensed', sans-serif"
 const BODY = "'DM Sans', sans-serif"
-=======
-import { useRoster, useMyEvals, useWeekData } from './hooks/useData'
-import { setSubmission, clearSubmission, addPlayer } from './services/db'
-import { EVAL_TOTAL } from './config/roles'
-import { WEEKS } from './config/metrics'
-import AppBar from './components/AppBar'
-import ModeTabs from './components/ModeTabs'
-import AthleteView from './views/AthleteView'
-import TraitView from './views/TraitView'
-import IntangiblesView from './views/IntangiblesView'
-import ResultsView from './views/ResultsView'
->>>>>>> 3d610ec (Remove orphaned Route tag crashing app on load (Route was never imported))
 
 export default function App() {
   const { user, ready, isStaff, signIn } = useAuth()
@@ -49,11 +36,7 @@ export default function App() {
   return <EvaluationCapture />
 }
 
-<<<<<<< HEAD
 function Gate({ children }) {
-=======
-function Shell({ children }) {
->>>>>>> 3d610ec (Remove orphaned Route tag crashing app on load (Route was never imported))
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#E9E6DC', padding: 20 }}>
       <div style={{ background: C.cream, borderRadius: 20, padding: 32, maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,.15)' }}>
@@ -62,6 +45,7 @@ function Shell({ children }) {
       </div>
     </div>
   )
+
 }
 
 const signInBtn = {
