@@ -10,7 +10,6 @@ import AthleteView from './views/AthleteView'
 import TraitView from './views/TraitView'
 import IntangiblesView from './views/IntangiblesView'
 import ResultsView from './views/ResultsView'
-import EvaluationCapture from "./views/EvaluationCapture";
 
 export default function App() {
   const auth = useAuth()
@@ -105,8 +104,6 @@ export default function App() {
     </Shell>
   )
 }
-
-<Route path="/evaluations" element={<EvaluationCapture />} />
 
 function Shell({ children }) {
   return (
